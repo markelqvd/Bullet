@@ -1,8 +1,18 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "{744438CB-42C6-8195-BDC5-548DB9F88CB3}",
+	"EngineAssociation": "{819EB53E-4789-82D3-E840-01BE74F87F9B}",
 	"Category": "",
 	"Description": "",
+	"Modules": [
+		{
+			"Name": "Bullet",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine"
+			]
+		}
+	],
 	"Plugins": [
 		{
 			"Name": "ModelingToolsEditorMode",

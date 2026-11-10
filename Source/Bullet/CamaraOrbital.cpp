@@ -28,7 +28,14 @@ void ACamaraOrbital::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
 
-    Tiempo += DeltaSeconds;
+    // Avanzar la oscilacion solo cuando el jugador se mueve
+    if (ACharacter* Jugador = UGameplayStatics::GetPlayerCharacter(this, 0))
+    {
+        if (Jugador->GetVelocity().Size2D() > 5.0f)
+        {
+            Tiempo += DeltaSeconds;
+        }
+    }
 
     // Calcular la oscilacion de izquierda a derecha
     float Angulo = FMath::Sin(Tiempo * Velocidad) * Amplitud;

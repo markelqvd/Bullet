@@ -6,6 +6,7 @@
 #include "MenuPrincipal.generated.h"
 
 class SWidget;
+class SWidgetSwitcher;
 
 UCLASS()
 class BULLET_API AMenuPrincipal : public AActor
@@ -23,4 +24,5 @@ protected:
 
 private:
     TSharedPtr<SWidget> MenuWidget;
+    TSharedPtr<SWidgetSwitcher> Pantallas;
 };

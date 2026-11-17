@@ -10,7 +10,7 @@
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Layout/SBox.h"
 #include "Widgets/Layout/SBorder.h"
-#include "Widgets/SOverlay.h"
+#include "Widgets/Layout/SWidgetSwitcher.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Styling/CoreStyle.h"
@@ -31,105 +31,184 @@ void AMenuPrincipal::BeginPlay()
     }
 
     MenuWidget =
-        SNew(SOverlay)
-
-        + SOverlay::Slot()
-        [
-            SNew(SBorder)
-                .BorderBackgroundColor(
-                    FLinearColor(0.03f, 0.05f, 0.08f, 1.0f)
-                )
-        ]
-
-        + SOverlay::Slot()
+        SNew(SBorder)
+        .BorderBackgroundColor(
+            FLinearColor(0.03f, 0.05f, 0.08f, 1.0f)
+        )
         .HAlign(HAlign_Center)
         .VAlign(VAlign_Center)
         [
-            SNew(SVerticalBox)
+            SAssignNew(Pantallas, SWidgetSwitcher)
 
-                // Titulo
-                + SVerticalBox::Slot()
-                .AutoHeight()
-                .HAlign(HAlign_Center)
-                .Padding(0, 0, 0, 35)
+                // PANTALLA 0: MENU PRINCIPAL
+                + SWidgetSwitcher::Slot()
                 [
-                    SNew(STextBlock)
-                        .Text(FText::FromString(TEXT("BULLET")))
-                        .Font(
-                            FCoreStyle::GetDefaultFontStyle("Bold", 50)
-                        )
-                ]
+                    SNew(SVerticalBox)
 
-            // Boton JUGAR
-            + SVerticalBox::Slot()
-                .AutoHeight()
-                .Padding(0, 0, 0, 12)
-                [
-                    SNew(SBox)
-                        .WidthOverride(260)
-                        .HeightOverride(55)
+                        // TITULO
+                        + SVerticalBox::Slot()
+                        .AutoHeight()
+                        .HAlign(HAlign_Center)
+                        .Padding(0, 0, 0, 35)
                         [
-                            SNew(SButton)
-                                .HAlign(HAlign_Center)
-                                .VAlign(VAlign_Center)
-                                .OnClicked_Lambda([this]()
-                                    {
-                                        if (APlayerController* PC =
-                                            GetWorld()->GetFirstPlayerController())
-                                        {
-                                            PC->SetInputMode(
-                                                FInputModeGameOnly()
-                                            );
-                                            PC->bShowMouseCursor = false;
-                                        }
+                            SNew(STextBlock)
+                                .Text(FText::FromString(TEXT("BULLET")))
+                                .Font(
+                                    FCoreStyle::GetDefaultFontStyle("Bold", 50)
+                                )
+                        ]
 
-                                        UGameplayStatics::OpenLevel(
-                                            this,
-                                            FName(TEXT("Level1"))
-                                        );
-
-                                        return FReply::Handled();
-                                    })
+                    // JUGAR
+                    + SVerticalBox::Slot()
+                        .AutoHeight()
+                        .Padding(0, 0, 0, 12)
+                        [
+                            SNew(SBox)
+                                .WidthOverride(260)
+                                .HeightOverride(55)
                                 [
-                                    SNew(STextBlock)
-                                        .Text(FText::FromString(TEXT("JUGAR")))
+                                    SNew(SButton)
+                                        .HAlign(HAlign_Center)
+                                        .VAlign(VAlign_Center)
+                                        .OnClicked_Lambda([this]()
+                                            {
+                                                if (APlayerController* PC =
+                                                    GetWorld()->GetFirstPlayerController())
+                                                {
+                                                    PC->SetInputMode(FInputModeGameOnly());
+                                                    PC->bShowMouseCursor = false;
+                                                }
+
+                                                UGameplayStatics::OpenLevel(
+                                                    this, FName(TEXT("Level1"))
+                                                );
+
+                                                return FReply::Handled();
+                                            })
+                                        [
+                                            SNew(STextBlock)
+                                                .Text(FText::FromString(TEXT("JUGAR")))
+                                        ]
+                                ]
+                        ]
+
+                    // AJUSTES
+                    + SVerticalBox::Slot()
+                        .AutoHeight()
+                        .Padding(0, 0, 0, 12)
+                        [
+                            SNew(SBox)
+                                .WidthOverride(260)
+                                .HeightOverride(55)
+                                [
+                                    SNew(SButton)
+                                        .HAlign(HAlign_Center)
+                                        .VAlign(VAlign_Center)
+                                        .OnClicked_Lambda([this]()
+                                            {
+                                                if (Pantallas.IsValid())
+                                                {
+                                                    Pantallas->SetActiveWidgetIndex(1);
+                                                }
+
+                                                return FReply::Handled();
+                                            })
+                                        [
+                                            SNew(STextBlock)
+                                                .Text(FText::FromString(TEXT("AJUSTES")))
+                                        ]
+                                ]
+                        ]
+
+                    // SALIR
+                    + SVerticalBox::Slot()
+                        .AutoHeight()
+                        [
+                            SNew(SBox)
+                                .WidthOverride(260)
+                                .HeightOverride(55)
+                                [
+                                    SNew(SButton)
+                                        .HAlign(HAlign_Center)
+                                        .VAlign(VAlign_Center)
+                                        .OnClicked_Lambda([this]()
+                                            {
+                                                UKismetSystemLibrary::QuitGame(
+                                                    this,
+                                                    GetWorld()->GetFirstPlayerController(),
+                                                    EQuitPreference::Quit,
+                                                    false
+                                                );
+
+                                                return FReply::Handled();
+                                            })
+                                        [
+                                            SNew(STextBlock)
+                                                .Text(FText::FromString(TEXT("SALIR")))
+                                        ]
                                 ]
                         ]
                 ]
 
-            // Boton SALIR
-            + SVerticalBox::Slot()
-                .AutoHeight()
+            // PANTALLA 1: AJUSTES
+            + SWidgetSwitcher::Slot()
                 [
-                    SNew(SBox)
-                        .WidthOverride(260)
-                        .HeightOverride(55)
-                        [
-                            SNew(SButton)
-                                .HAlign(HAlign_Center)
-                                .VAlign(VAlign_Center)
-                                .OnClicked_Lambda([this]()
-                                    {
-                                        UKismetSystemLibrary::QuitGame(
-                                            this,
-                                            GetWorld()->GetFirstPlayerController(),
-                                            EQuitPreference::Quit,
-                                            false
-                                        );
+                    SNew(SVerticalBox)
 
-                                        return FReply::Handled();
-                                    })
+                        + SVerticalBox::Slot()
+                        .AutoHeight()
+                        .HAlign(HAlign_Center)
+                        .Padding(0, 0, 0, 35)
+                        [
+                            SNew(STextBlock)
+                                .Text(FText::FromString(TEXT("AJUSTES")))
+                                .Font(
+                                    FCoreStyle::GetDefaultFontStyle("Bold", 40)
+                                )
+                        ]
+
+                    + SVerticalBox::Slot()
+                        .AutoHeight()
+                        .HAlign(HAlign_Center)
+                        .Padding(0, 0, 0, 25)
+                        [
+                            SNew(STextBlock)
+                                .Text(FText::FromString(
+                                    TEXT("Opciones por configurar")
+                                ))
+                        ]
+
+                        // VOLVER
+                        + SVerticalBox::Slot()
+                        .AutoHeight()
+                        [
+                            SNew(SBox)
+                                .WidthOverride(260)
+                                .HeightOverride(55)
                                 [
-                                    SNew(STextBlock)
-                                        .Text(FText::FromString(TEXT("SALIR")))
+                                    SNew(SButton)
+                                        .HAlign(HAlign_Center)
+                                        .VAlign(VAlign_Center)
+                                        .OnClicked_Lambda([this]()
+                                            {
+                                                if (Pantallas.IsValid())
+                                                {
+                                                    Pantallas->SetActiveWidgetIndex(0);
+                                                }
+
+                                                return FReply::Handled();
+                                            })
+                                        [
+                                            SNew(STextBlock)
+                                                .Text(FText::FromString(TEXT("VOLVER")))
+                                        ]
                                 ]
                         ]
                 ]
         ];
 
     GEngine->GameViewport->AddViewportWidgetContent(
-        MenuWidget.ToSharedRef(),
-        100
+        MenuWidget.ToSharedRef(), 100
     );
 
     if (APlayerController* PC =
@@ -152,6 +231,7 @@ void AMenuPrincipal::EndPlay(
     }
 
     MenuWidget.Reset();
+    Pantallas.Reset();
 
     Super::EndPlay(EndPlayReason);
 }

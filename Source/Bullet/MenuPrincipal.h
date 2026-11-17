@@ -18,6 +18,7 @@ public:
 
 protected:
     virtual void BeginPlay() override;
+
     virtual void EndPlay(
         const EEndPlayReason::Type EndPlayReason
     ) override;
@@ -25,4 +26,21 @@ protected:
 private:
     TSharedPtr<SWidget> MenuWidget;
     TSharedPtr<SWidgetSwitcher> Pantallas;
+
+    // Ajustes
+    float Volumen = 1.0f;
+    bool bPantallaCompleta = false;
+    int32 IndiceResolucion = 2;
+
+    TArray<FIntPoint> Resoluciones = {
+        FIntPoint(1280, 720),
+        FIntPoint(1600, 900),
+        FIntPoint(1920, 1080),
+        FIntPoint(2560, 1440)
+    };
+
+    void AplicarAjustes();
+
+    // Crear botones del selector
+    TSharedRef<SWidget> CrearBotonNivel(int32 Nivel);
 };

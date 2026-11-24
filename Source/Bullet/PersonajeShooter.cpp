@@ -1,118 +1,164 @@
 #include "PersonajeShooter.h"
 #include "Proyectil.h"
 #include "MiHUD.h"
-#include "Kismet/GameplayStatics.h"
-#include "Engine/World.h"
+#include "Camera/CameraComponent.h"
+#include "Camera/PlayerCameraManager.h"
 #include "Components/InputComponent.h"
+#include "Engine/World.h"
+#include "EnhancedInputComponent.h"
+#include "GameFramework/PlayerController.h"
+#include "InputAction.h"
 
 APersonajeShooter::APersonajeShooter()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
-	// Crear cámara de 1ª persona fijada a la cabeza/ojos del personaje
+	// Cámara de 1ª persona fijada a la cabeza del personaje
 	CamaraPrimeraPersona = CreateDefaultSubobject<UCameraComponent>(TEXT("CamaraPrimeraPersona"));
 	CamaraPrimeraPersona->SetupAttachment(GetMesh(), TEXT("head"));
 	CamaraPrimeraPersona->SetRelativeLocation(FVector(0.0f, 15.0f, 0.0f));
 	CamaraPrimeraPersona->bUsePawnControlRotation = true;
-	CamaraPrimeraPersona->SetActive(false); // Empieza apagada
-}
+	CamaraPrimeraPersona->bAutoActivate = false; // Empieza apagada
 
-void APersonajeShooter::BeginPlay()
-{
-	Super::BeginPlay();
+	ClaseProyectil = AProyectil::StaticClass();
 }
 
 void APersonajeShooter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	PlayerInputComponent->BindKey(EKeys::RightMouseButton, IE_Pressed, this, &APersonajeShooter::IniciarApuntado);
-	PlayerInputComponent->BindKey(EKeys::RightMouseButton, IE_Released, this, &APersonajeShooter::DetenerApuntado);
-	PlayerInputComponent->BindKey(EKeys::LeftMouseButton, IE_Pressed, this, &APersonajeShooter::Disparar);
+	UEnhancedInputComponent* InputMejorado = Cast<UEnhancedInputComponent>(PlayerInputComponent);
+
+	// Apuntar
+	if (InputMejorado && AccionApuntar)
+	{
+		InputMejorado->BindAction(AccionApuntar, ETriggerEvent::Started, this, &APersonajeShooter::IniciarApuntado);
+		InputMejorado->BindAction(AccionApuntar, ETriggerEvent::Completed, this, &APersonajeShooter::DetenerApuntado);
+		InputMejorado->BindAction(AccionApuntar, ETriggerEvent::Canceled, this, &APersonajeShooter::DetenerApuntado);
+	}
+	else
+	{
+		PlayerInputComponent->BindKey(EKeys::RightMouseButton, IE_Pressed, this, &APersonajeShooter::IniciarApuntado);
+		PlayerInputComponent->BindKey(EKeys::RightMouseButton, IE_Released, this, &APersonajeShooter::DetenerApuntado);
+	}
+
+	// Disparar
+	if (InputMejorado && AccionDisparar)
+	{
+		InputMejorado->BindAction(AccionDisparar, ETriggerEvent::Started, this, &APersonajeShooter::Disparar);
+	}
+	else
+	{
+		PlayerInputComponent->BindKey(EKeys::LeftMouseButton, IE_Pressed, this, &APersonajeShooter::Disparar);
+	}
 }
 
 void APersonajeShooter::IniciarApuntado()
 {
+	if (bApuntando)
+	{
+		return;
+	}
 	bApuntando = true;
 
-	// 1. Apagar la cámara de 3ª persona (FollowCamera)
-	TArray<UCameraComponent*> Camaras;
-	GetComponents<UCameraComponent>(Camaras);
-	for (UCameraComponent* Cam : Camaras)
-	{
-		if (Cam != CamaraPrimeraPersona)
-		{
-			Cam->SetActive(false);
-		}
-	}
-
-	// 2. Encender la cámara de 1ª persona
-	if (CamaraPrimeraPersona)
-	{
-		CamaraPrimeraPersona->SetActive(true);
-	}
-
-	// 3. Mostrar el HUD
-	APlayerController* PC = Cast<APlayerController>(GetController());
-	if (PC && PC->GetHUD())
-	{
-		AMiHUD* HUD = Cast<AMiHUD>(PC->GetHUD());
-		if (HUD) HUD->bEstaApuntando = true;
-	}
+	ActivarCamaraPrimeraPersona(true);
+	ActualizarMirilla(true);
 }
 
 void APersonajeShooter::DetenerApuntado()
 {
+	if (!bApuntando)
+	{
+		return;
+	}
 	bApuntando = false;
 
-	// 1. Apagar la cámara de 1ª persona
-	if (CamaraPrimeraPersona)
-	{
-		CamaraPrimeraPersona->SetActive(false);
-	}
+	ActivarCamaraPrimeraPersona(false);
+	ActualizarMirilla(false);
+}
 
-	// 2. Volver a encender la cámara de 3ª persona
+void APersonajeShooter::ActivarCamaraPrimeraPersona(bool bActivar)
+{
+	// Encender/apagar las cámaras del personaje
 	TArray<UCameraComponent*> Camaras;
 	GetComponents<UCameraComponent>(Camaras);
 	for (UCameraComponent* Cam : Camaras)
 	{
-		if (Cam != CamaraPrimeraPersona)
-		{
-			Cam->SetActive(true);
-		}
+		const bool bEsPrimeraPersona = (Cam == CamaraPrimeraPersona);
+		Cam->SetActive(bEsPrimeraPersona ? bActivar : !bActivar);
 	}
 
-	// 3. Ocultar el HUD
+	// Si otra cámara (p. ej. CamaraOrbital) tiene la vista, cogerla al apuntar y devolverla al soltar
 	APlayerController* PC = Cast<APlayerController>(GetController());
-	if (PC && PC->GetHUD())
+	if (!PC)
 	{
-		AMiHUD* HUD = Cast<AMiHUD>(PC->GetHUD());
-		if (HUD) HUD->bEstaApuntando = false;
+		return;
+	}
+
+	if (bActivar)
+	{
+		AActor* VistaActual = PC->GetViewTarget();
+		if (VistaActual != this)
+		{
+			VistaAnterior = VistaActual;
+			PC->SetViewTarget(this);
+		}
+	}
+	else if (VistaAnterior.IsValid())
+	{
+		PC->SetViewTarget(VistaAnterior.Get());
+		VistaAnterior.Reset();
+	}
+}
+
+void APersonajeShooter::ActualizarMirilla(bool bVisible) const
+{
+	if (const APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		if (AMiHUD* HUD = Cast<AMiHUD>(PC->GetHUD()))
+		{
+			HUD->bEstaApuntando = bVisible;
+		}
 	}
 }
 
 void APersonajeShooter::Disparar()
 {
-	APlayerCameraManager* CamaraMgr = UGameplayStatics::GetPlayerCameraManager(GetWorld(), 0);
-	if (!CamaraMgr) return;
+	UWorld* Mundo = GetWorld();
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!Mundo || !PC || !PC->PlayerCameraManager || !ClaseProyectil)
+	{
+		return;
+	}
 
-	FVector InicioRayo = CamaraMgr->GetCameraLocation();
-	FVector DireccionRayo = CamaraMgr->GetActorForwardVector();
-	FVector FinRayo = InicioRayo + (DireccionRayo * 10000.0f);
+	// Limitar la cadencia
+	const float Ahora = Mundo->GetTimeSeconds();
+	if (Ahora - UltimoDisparo < CadenciaDisparo)
+	{
+		return;
+	}
+	UltimoDisparo = Ahora;
+
+	// Rayo desde el centro de la cámara
+	const FVector InicioRayo = PC->PlayerCameraManager->GetCameraLocation();
+	const FVector DireccionRayo = PC->PlayerCameraManager->GetCameraRotation().Vector();
+	const FVector FinRayo = InicioRayo + DireccionRayo * AlcanceDisparo;
 
 	FHitResult Impacto;
-	FCollisionQueryParams Params;
-	Params.AddIgnoredActor(this);
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(DisparoPersonaje), false, this);
+	const bool bHit = Mundo->LineTraceSingleByChannel(Impacto, InicioRayo, FinRayo, ECC_Visibility, Params);
+	const FVector PuntoObjetivo = bHit ? Impacto.ImpactPoint : FinRayo;
 
-	bool bHit = GetWorld()->LineTraceSingleByChannel(Impacto, InicioRayo, FinRayo, ECC_Visibility, Params);
-	FVector PuntoObjetivo = bHit ? Impacto.ImpactPoint : FinRayo;
-
-	FVector OrigenBala = CamaraPrimeraPersona->GetComponentLocation();
-	FVector DireccionBala = PuntoObjetivo - OrigenBala;
-	FRotator RotacionBala = DireccionBala.Rotation();
+	// La bala sale de la cámara de 1ª persona si se apunta; si no, desde delante del personaje
+	const FVector OrigenBala = bApuntando
+		? CamaraPrimeraPersona->GetComponentLocation()
+		: GetActorLocation() + GetActorForwardVector() * 60.0f + FVector(0.0f, 0.0f, 50.0f);
+	const FRotator RotacionBala = (PuntoObjetivo - OrigenBala).Rotation();
 
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.Owner = this;
+	SpawnParams.Instigator = this;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	GetWorld()->SpawnActor<AProyectil>(AProyectil::StaticClass(), OrigenBala, RotacionBala, SpawnParams);
+	Mundo->SpawnActor<AProyectil>(ClaseProyectil, OrigenBala, RotacionBala, SpawnParams);
 }

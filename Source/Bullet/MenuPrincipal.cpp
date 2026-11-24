@@ -9,6 +9,7 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Misc/App.h"
 #include "Misc/ConfigCacheIni.h"
+#include "Misc/PackageName.h"
 
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Layout/SBox.h"
@@ -88,7 +89,7 @@ void AMenuPrincipal::BeginPlay()
         [
             SAssignNew(Pantallas, SWidgetSwitcher)
 
-               //Men u principal
+               // PANTALLA 0: MENU PRINCIPAL
 
                 +SWidgetSwitcher::Slot()
                 [
@@ -415,44 +416,12 @@ void AMenuPrincipal::BeginPlay()
                                 )
                         ]
 
-                    // NIVEL 1
+                    // LISTA DE NIVELES (se rellena con los mapas que existen)
                     + SVerticalBox::Slot()
-                        .AutoHeight()
-                        .Padding(0, 0, 0, 10)
-                        [
-                            CrearBotonNivel(1)
-                        ]
-
-                        // NIVEL 2
-                        + SVerticalBox::Slot()
-                        .AutoHeight()
-                        .Padding(0, 0, 0, 10)
-                        [
-                            CrearBotonNivel(2)
-                        ]
-
-                        // NIVEL 3
-                        + SVerticalBox::Slot()
-                        .AutoHeight()
-                        .Padding(0, 0, 0, 10)
-                        [
-                            CrearBotonNivel(3)
-                        ]
-
-                        // NIVEL 4
-                        + SVerticalBox::Slot()
-                        .AutoHeight()
-                        .Padding(0, 0, 0, 10)
-                        [
-                            CrearBotonNivel(4)
-                        ]
-
-                        // NIVEL 5
-                        + SVerticalBox::Slot()
                         .AutoHeight()
                         .Padding(0, 0, 0, 15)
                         [
-                            CrearBotonNivel(5)
+                            SAssignNew(ListaNiveles, SVerticalBox)
                         ]
 
                         // VOLVER AL MENU PRINCIPAL
@@ -483,6 +452,28 @@ void AMenuPrincipal::BeginPlay()
                         ]
                 ]
         ];
+
+    // Crear un boton por cada LevelN que exista en Content/Scenes
+    if (ListaNiveles.IsValid())
+    {
+        for (int32 Nivel = 1; Nivel <= MaxNiveles; ++Nivel)
+        {
+            const FString RutaNivel =
+                FString::Printf(TEXT("%s/Level%d"), *CarpetaNiveles, Nivel);
+
+            if (!FPackageName::DoesPackageExist(RutaNivel))
+            {
+                continue;
+            }
+
+            ListaNiveles->AddSlot()
+                .AutoHeight()
+                .Padding(0, 0, 0, 10)
+                [
+                    CrearBotonNivel(Nivel)
+                ];
+        }
+    }
 
     // Mostrar menu
     GEngine->GameViewport->AddViewportWidgetContent(
@@ -523,8 +514,8 @@ TSharedRef<SWidget> AMenuPrincipal::CrearBotonNivel(int32 Nivel)
                         }
 
                         // Cargar Level1, Level2, etc.
-                        FString NombreNivel =
-                            FString::Printf(TEXT("Level%d"), Nivel);
+                        FString NombreNivel = FString::Printf(
+                            TEXT("%s/Level%d"), *CarpetaNiveles, Nivel);
 
                         UGameplayStatics::OpenLevel(
                             this,
@@ -597,6 +588,7 @@ void AMenuPrincipal::EndPlay(
 
     MenuWidget.Reset();
     Pantallas.Reset();
+    ListaNiveles.Reset();
 
     Super::EndPlay(EndPlayReason);
 }

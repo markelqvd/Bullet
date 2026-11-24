@@ -1,23 +1,26 @@
 #include "MecanicaShooter.h"
+#include "PersonajeShooter.h"
 #include "Proyectil.h"
 #include "MiHUD.h"
-#include "Kismet/GameplayStatics.h"
-#include "Engine/World.h"
+#include "Camera/CameraComponent.h"
+#include "Camera/PlayerCameraManager.h"
 #include "Components/InputComponent.h"
+#include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
 
 AMecanicaShooter::AMecanicaShooter()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bStartWithTickEnabled = false; // Solo hace Tick mientras se apunta
 
 	CamaraPrimeraPersona = CreateDefaultSubobject<UCameraComponent>(TEXT("CamaraPrimeraPersona"));
+	RootComponent = CamaraPrimeraPersona;
 }
 
 void AMecanicaShooter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Conectar las teclas de ratón directamente en C++ al arrancar el nivel
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();
 	if (PC)
 	{
@@ -31,71 +34,69 @@ void AMecanicaShooter::BeginPlay()
 	}
 }
 
+APawn* AMecanicaShooter::ObtenerJugadorSinShooter() const
+{
+	const APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	APawn* Jugador = PC ? PC->GetPawn() : nullptr;
+
+	// Si el personaje ya tiene la mecanica propia, este actor no interviene
+	if (!Jugador || Jugador->IsA<APersonajeShooter>())
+	{
+		return nullptr;
+	}
+	return Jugador;
+}
+
 void AMecanicaShooter::IniciarApuntado()
 {
+	APawn* Jugador = ObtenerJugadorSinShooter();
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();
-	if (!PC) return;
-
-	APawn* Jugador = PC->GetPawn();
-	if (!Jugador) return;
-
-	if (CamaraPrimeraPersona)
+	if (!Jugador || !PC || bApuntando)
 	{
-		// Enganchar la cámara de 1ª persona a la cabeza del monigote que esté en escena
-		if (!CamaraPrimeraPersona->GetAttachParent())
-		{
-			CamaraPrimeraPersona->AttachToComponent(Jugador->GetRootComponent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
-			CamaraPrimeraPersona->SetRelativeLocation(FVector(0.0f, 0.0f, 60.0f));
-		}
-
-		// Desactivar la cámara 3ª persona previa
-		TArray<UCameraComponent*> Camaras;
-		Jugador->GetComponents<UCameraComponent>(Camaras);
-		for (UCameraComponent* Cam : Camaras)
-		{
-			if (Cam != CamaraPrimeraPersona)
-			{
-				Cam->SetActive(false);
-			}
-		}
-
-		CamaraPrimeraPersona->SetActive(true);
+		return;
 	}
+	bApuntando = true;
 
-	// Activar la mirilla en el HUD
-	AMiHUD* HUD = Cast<AMiHUD>(PC->GetHUD());
-	if (HUD)
+	// Colocar esta cámara a la altura de los ojos del jugador y usarla como vista
+	SetActorLocationAndRotation(Jugador->GetPawnViewLocation(), PC->GetControlRotation());
+	VistaAnterior = PC->GetViewTarget();
+	PC->SetViewTarget(this);
+	SetActorTickEnabled(true);
+
+	if (AMiHUD* HUD = Cast<AMiHUD>(PC->GetHUD()))
 	{
 		HUD->bEstaApuntando = true;
+	}
+}
+
+void AMecanicaShooter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	// Seguir la cabeza y el raton del jugador mientras se apunta
+	const APlayerController* PC = GetWorld()->GetFirstPlayerController();
+	const APawn* Jugador = PC ? PC->GetPawn() : nullptr;
+	if (bApuntando && Jugador)
+	{
+		SetActorLocationAndRotation(Jugador->GetPawnViewLocation(), PC->GetControlRotation());
 	}
 }
 
 void AMecanicaShooter::DetenerApuntado()
 {
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();
-	if (!PC) return;
-
-	APawn* Jugador = PC->GetPawn();
-	if (!Jugador) return;
-
-	if (CamaraPrimeraPersona)
+	if (!PC || !bApuntando)
 	{
-		CamaraPrimeraPersona->SetActive(false);
-
-		// Reactivar cámara de 3ª persona
-		TArray<UCameraComponent*> Camaras;
-		Jugador->GetComponents<UCameraComponent>(Camaras);
-		for (UCameraComponent* Cam : Camaras)
-		{
-			if (Cam != CamaraPrimeraPersona)
-			{
-				Cam->SetActive(true);
-			}
-		}
+		return;
 	}
+	bApuntando = false;
+	SetActorTickEnabled(false);
 
-	AMiHUD* HUD = Cast<AMiHUD>(PC->GetHUD());
-	if (HUD)
+	AActor* Vista = VistaAnterior.IsValid() ? VistaAnterior.Get() : PC->GetPawn();
+	PC->SetViewTarget(Vista);
+	VistaAnterior.Reset();
+
+	if (AMiHUD* HUD = Cast<AMiHUD>(PC->GetHUD()))
 	{
 		HUD->bEstaApuntando = false;
 	}
@@ -103,32 +104,32 @@ void AMecanicaShooter::DetenerApuntado()
 
 void AMecanicaShooter::Disparar()
 {
+	APawn* Jugador = ObtenerJugadorSinShooter();
 	APlayerController* PC = GetWorld()->GetFirstPlayerController();
-	if (!PC) return;
-
-	APlayerCameraManager* CamaraMgr = PC->PlayerCameraManager;
-	if (!CamaraMgr) return;
-
-	FVector InicioRayo = CamaraMgr->GetCameraLocation();
-	FVector DireccionRayo = CamaraMgr->GetActorForwardVector();
-	FVector FinRayo = InicioRayo + (DireccionRayo * 10000.0f);
-
-	FHitResult Impacto;
-	FCollisionQueryParams Params;
-	if (PC->GetPawn())
+	if (!Jugador || !PC || !PC->PlayerCameraManager)
 	{
-		Params.AddIgnoredActor(PC->GetPawn());
+		return;
 	}
 
-	bool bHit = GetWorld()->LineTraceSingleByChannel(Impacto, InicioRayo, FinRayo, ECC_Visibility, Params);
-	FVector PuntoObjetivo = bHit ? Impacto.ImpactPoint : FinRayo;
+	const FVector InicioRayo = PC->PlayerCameraManager->GetCameraLocation();
+	const FVector DireccionRayo = PC->PlayerCameraManager->GetCameraRotation().Vector();
+	const FVector FinRayo = InicioRayo + DireccionRayo * 10000.0f;
 
-	FVector OrigenBala = CamaraMgr->GetCameraLocation();
-	FVector DireccionBala = PuntoObjetivo - OrigenBala;
-	FRotator RotacionBala = DireccionBala.Rotation();
+	FHitResult Impacto;
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(DisparoMecanica), false, Jugador);
+	Params.AddIgnoredActor(this);
+
+	const bool bHit = GetWorld()->LineTraceSingleByChannel(Impacto, InicioRayo, FinRayo, ECC_Visibility, Params);
+	const FVector PuntoObjetivo = bHit ? Impacto.ImpactPoint : FinRayo;
+
+	const FVector OrigenBala = bApuntando
+		? Jugador->GetPawnViewLocation()
+		: Jugador->GetActorLocation() + Jugador->GetActorForwardVector() * 60.0f + FVector(0.0f, 0.0f, 50.0f);
 
 	FActorSpawnParameters SpawnParams;
-	SpawnParams.Owner = PC->GetPawn();
+	SpawnParams.Owner = Jugador;
+	SpawnParams.Instigator = Jugador;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-	GetWorld()->SpawnActor<AProyectil>(AProyectil::StaticClass(), OrigenBala, RotacionBala, SpawnParams);
+	GetWorld()->SpawnActor<AProyectil>(AProyectil::StaticClass(), OrigenBala, (PuntoObjetivo - OrigenBala).Rotation(), SpawnParams);
 }

@@ -2,9 +2,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "GameFramework/ProjectileMovementComponent.h"
-#include "Components/StaticMeshComponent.h"
 #include "Proyectil.generated.h"
+
+class USphereComponent;
+class UStaticMeshComponent;
+class UProjectileMovementComponent;
 
 UCLASS()
 class BULLET_API AProyectil : public AActor
@@ -14,9 +16,25 @@ class BULLET_API AProyectil : public AActor
 public:
 	AProyectil();
 
-	UPROPERTY(VisibleAnywhere)
-	UStaticMeshComponent* MeshProyectil;
+	// Colision de la bala (raiz)
+	UPROPERTY(VisibleAnywhere, Category = "Proyectil")
+	TObjectPtr<USphereComponent> ColisionProyectil;
 
-	UPROPERTY(VisibleAnywhere)
-	UProjectileMovementComponent* MovimientoProyectil;
+	// Parte visual
+	UPROPERTY(VisibleAnywhere, Category = "Proyectil")
+	TObjectPtr<UStaticMeshComponent> MeshProyectil;
+
+	UPROPERTY(VisibleAnywhere, Category = "Proyectil")
+	TObjectPtr<UProjectileMovementComponent> MovimientoProyectil;
+
+	// Daño que hace al impactar
+	UPROPERTY(EditAnywhere, Category = "Proyectil")
+	float Dano = 25.0f;
+
+protected:
+	virtual void BeginPlay() override;
+
+	UFUNCTION()
+	void AlImpactar(UPrimitiveComponent* ComponenteGolpeado, AActor* OtroActor,
+		UPrimitiveComponent* OtroComponente, FVector ImpulsoNormal, const FHitResult& Impacto);
 };

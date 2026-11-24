@@ -7,17 +7,20 @@ public class Bullet : ModuleRules
 	public Bullet(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" });
 
-		PrivateDependencyModuleNames.AddRange(new string[] {  });
+		PublicDependencyModuleNames.AddRange(new string[]
+		{
+			"Core",
+			"CoreUObject",
+			"Engine",
+			"InputCore",
+			"EnhancedInput",     // Acciones de input (IA_Apuntar, IA_Disparar)
+			"AIModule",          // AAIController para EnemigoPatrulla
+			"NavigationSystem",  // MoveToActor / PathFollowing
+			"GameplayTasks"      // Requerido por AIModule
+		});
 
-		// Uncomment if you are using Slate UI
-		 PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
-		
-		// Uncomment if you are using online features
-		// PrivateDependencyModuleNames.Add("OnlineSubsystem");
-
-		// To include OnlineSubsystemSteam, add it to the plugins section in your uproject file with the Enabled attribute set to true
+		// Menu principal hecho con Slate
+		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 	}
 }

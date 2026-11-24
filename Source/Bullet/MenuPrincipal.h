@@ -30,16 +30,13 @@ private:
     TSharedPtr<SVerticalBox> ListaNiveles;
 
 protected:
-    // Carpeta donde estan Level1, Level2...
     UPROPERTY(EditAnywhere, Category = "Menu")
     FString CarpetaNiveles = TEXT("/Game/Scenes");
 
-    // Numero maximo de niveles que se buscan
     UPROPERTY(EditAnywhere, Category = "Menu", meta = (ClampMin = "1"))
     int32 MaxNiveles = 10;
 
 private:
-
     // Ajustes
     float Volumen = 1.0f;
     bool bPantallaCompleta = false;

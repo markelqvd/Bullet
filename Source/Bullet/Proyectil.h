@@ -16,18 +16,15 @@ class BULLET_API AProyectil : public AActor
 public:
 	AProyectil();
 
-	// Colision de la bala (raiz)
 	UPROPERTY(VisibleAnywhere, Category = "Proyectil")
 	TObjectPtr<USphereComponent> ColisionProyectil;
 
-	// Parte visual
 	UPROPERTY(VisibleAnywhere, Category = "Proyectil")
 	TObjectPtr<UStaticMeshComponent> MeshProyectil;
 
 	UPROPERTY(VisibleAnywhere, Category = "Proyectil")
 	TObjectPtr<UProjectileMovementComponent> MovimientoProyectil;
 
-	// Daño que hace al impactar
 	UPROPERTY(EditAnywhere, Category = "Proyectil")
 	float Dano = 25.0f;
 

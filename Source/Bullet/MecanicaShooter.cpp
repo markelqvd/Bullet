@@ -11,7 +11,7 @@
 AMecanicaShooter::AMecanicaShooter()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	PrimaryActorTick.bStartWithTickEnabled = false; // Solo hace Tick mientras se apunta
+	PrimaryActorTick.bStartWithTickEnabled = false;
 
 	CamaraPrimeraPersona = CreateDefaultSubobject<UCameraComponent>(TEXT("CamaraPrimeraPersona"));
 	RootComponent = CamaraPrimeraPersona;
@@ -39,7 +39,6 @@ APawn* AMecanicaShooter::ObtenerJugadorSinShooter() const
 	const APlayerController* PC = GetWorld()->GetFirstPlayerController();
 	APawn* Jugador = PC ? PC->GetPawn() : nullptr;
 
-	// Si el personaje ya tiene la mecanica propia, este actor no interviene
 	if (!Jugador || Jugador->IsA<APersonajeShooter>())
 	{
 		return nullptr;
@@ -57,7 +56,6 @@ void AMecanicaShooter::IniciarApuntado()
 	}
 	bApuntando = true;
 
-	// Colocar esta cámara a la altura de los ojos del jugador y usarla como vista
 	SetActorLocationAndRotation(Jugador->GetPawnViewLocation(), PC->GetControlRotation());
 	VistaAnterior = PC->GetViewTarget();
 	PC->SetViewTarget(this);
@@ -73,7 +71,6 @@ void AMecanicaShooter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	// Seguir la cabeza y el raton del jugador mientras se apunta
 	const APlayerController* PC = GetWorld()->GetFirstPlayerController();
 	const APawn* Jugador = PC ? PC->GetPawn() : nullptr;
 	if (bApuntando && Jugador)

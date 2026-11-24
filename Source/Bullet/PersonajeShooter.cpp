@@ -13,7 +13,6 @@ APersonajeShooter::APersonajeShooter()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	// Cámara de 1ª persona fijada a la cabeza del personaje
 	CamaraPrimeraPersona = CreateDefaultSubobject<UCameraComponent>(TEXT("CamaraPrimeraPersona"));
 	CamaraPrimeraPersona->SetupAttachment(GetMesh(), TEXT("head"));
 	CamaraPrimeraPersona->SetRelativeLocation(FVector(0.0f, 15.0f, 0.0f));
@@ -29,7 +28,6 @@ void APersonajeShooter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 	UEnhancedInputComponent* InputMejorado = Cast<UEnhancedInputComponent>(PlayerInputComponent);
 
-	// Apuntar
 	if (InputMejorado && AccionApuntar)
 	{
 		InputMejorado->BindAction(AccionApuntar, ETriggerEvent::Started, this, &APersonajeShooter::IniciarApuntado);
@@ -42,7 +40,6 @@ void APersonajeShooter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		PlayerInputComponent->BindKey(EKeys::RightMouseButton, IE_Released, this, &APersonajeShooter::DetenerApuntado);
 	}
 
-	// Disparar
 	if (InputMejorado && AccionDisparar)
 	{
 		InputMejorado->BindAction(AccionDisparar, ETriggerEvent::Started, this, &APersonajeShooter::Disparar);
@@ -79,7 +76,6 @@ void APersonajeShooter::DetenerApuntado()
 
 void APersonajeShooter::ActivarCamaraPrimeraPersona(bool bActivar)
 {
-	// Encender/apagar las cámaras del personaje
 	TArray<UCameraComponent*> Camaras;
 	GetComponents<UCameraComponent>(Camaras);
 	for (UCameraComponent* Cam : Camaras)
@@ -88,7 +84,6 @@ void APersonajeShooter::ActivarCamaraPrimeraPersona(bool bActivar)
 		Cam->SetActive(bEsPrimeraPersona ? bActivar : !bActivar);
 	}
 
-	// Si otra cámara (p. ej. CamaraOrbital) tiene la vista, cogerla al apuntar y devolverla al soltar
 	APlayerController* PC = Cast<APlayerController>(GetController());
 	if (!PC)
 	{
@@ -131,7 +126,6 @@ void APersonajeShooter::Disparar()
 		return;
 	}
 
-	// Limitar la cadencia
 	const float Ahora = Mundo->GetTimeSeconds();
 	if (Ahora - UltimoDisparo < CadenciaDisparo)
 	{
@@ -139,7 +133,6 @@ void APersonajeShooter::Disparar()
 	}
 	UltimoDisparo = Ahora;
 
-	// Rayo desde el centro de la cámara
 	const FVector InicioRayo = PC->PlayerCameraManager->GetCameraLocation();
 	const FVector DireccionRayo = PC->PlayerCameraManager->GetCameraRotation().Vector();
 	const FVector FinRayo = InicioRayo + DireccionRayo * AlcanceDisparo;
@@ -149,7 +142,6 @@ void APersonajeShooter::Disparar()
 	const bool bHit = Mundo->LineTraceSingleByChannel(Impacto, InicioRayo, FinRayo, ECC_Visibility, Params);
 	const FVector PuntoObjetivo = bHit ? Impacto.ImpactPoint : FinRayo;
 
-	// La bala sale de la cámara de 1ª persona si se apunta; si no, desde delante del personaje
 	const FVector OrigenBala = bApuntando
 		? CamaraPrimeraPersona->GetComponentLocation()
 		: GetActorLocation() + GetActorForwardVector() * 60.0f + FVector(0.0f, 0.0f, 50.0f);

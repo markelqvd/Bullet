@@ -89,8 +89,6 @@ void AMenuPrincipal::BeginPlay()
         [
             SAssignNew(Pantallas, SWidgetSwitcher)
 
-               // PANTALLA 0: MENU PRINCIPAL
-
                 +SWidgetSwitcher::Slot()
                 [
                     SNew(SVerticalBox)
@@ -416,7 +414,6 @@ void AMenuPrincipal::BeginPlay()
                                 )
                         ]
 
-                    // LISTA DE NIVELES (se rellena con los mapas que existen)
                     + SVerticalBox::Slot()
                         .AutoHeight()
                         .Padding(0, 0, 0, 15)
@@ -453,7 +450,6 @@ void AMenuPrincipal::BeginPlay()
                 ]
         ];
 
-    // Crear un boton por cada LevelN que exista en Content/Scenes
     if (ListaNiveles.IsValid())
     {
         for (int32 Nivel = 1; Nivel <= MaxNiveles; ++Nivel)

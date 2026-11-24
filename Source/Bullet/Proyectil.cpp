@@ -9,10 +9,8 @@ AProyectil::AProyectil()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	// La bala se destruye sola si no choca con nada
 	InitialLifeSpan = 3.0f;
 
-	// Esfera de colision como raiz
 	ColisionProyectil = CreateDefaultSubobject<USphereComponent>(TEXT("ColisionProyectil"));
 	ColisionProyectil->InitSphereRadius(5.0f);
 	ColisionProyectil->SetCollisionProfileName(TEXT("BlockAllDynamic"));
@@ -20,7 +18,6 @@ AProyectil::AProyectil()
 	ColisionProyectil->CanCharacterStepUpOn = ECB_No;
 	RootComponent = ColisionProyectil;
 
-	// Malla visual sin colision (esfera placeholder)
 	MeshProyectil = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MeshProyectil"));
 	MeshProyectil->SetupAttachment(RootComponent);
 	MeshProyectil->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -45,7 +42,6 @@ void AProyectil::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// No chocar con quien dispara
 	if (AActor* Tirador = GetOwner())
 	{
 		ColisionProyectil->IgnoreActorWhenMoving(Tirador, true);
@@ -62,7 +58,6 @@ void AProyectil::AlImpactar(UPrimitiveComponent* ComponenteGolpeado, AActor* Otr
 		UGameplayStatics::ApplyPointDamage(OtroActor, Dano, GetVelocity().GetSafeNormal(), Impacto,
 			GetInstigatorController(), this, nullptr);
 
-		// Empujar objetos con fisica
 		if (OtroComponente && OtroComponente->IsSimulatingPhysics())
 		{
 			OtroComponente->AddImpulseAtLocation(GetVelocity() * 0.5f, Impacto.ImpactPoint);

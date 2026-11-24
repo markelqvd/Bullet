@@ -18,16 +18,13 @@ void AMiHUD::DrawHUD()
 	const FVector2D Centro(W * 0.5f, H * 0.5f);
 	const float Radio = 170.0f;
 
-	// 1. Tapar la pantalla fuera del cuadrado que rodea la mirilla
 	DrawRect(FLinearColor::Black, 0.0f, 0.0f, W, Centro.Y - Radio);
 	DrawRect(FLinearColor::Black, 0.0f, Centro.Y + Radio, W, H - (Centro.Y + Radio));
 	DrawRect(FLinearColor::Black, 0.0f, Centro.Y - Radio, Centro.X - Radio, Radio * 2.0f);
 	DrawRect(FLinearColor::Black, Centro.X + Radio, Centro.Y - Radio, W - (Centro.X + Radio), Radio * 2.0f);
 
-	// 2. Rellenar las esquinas del cuadrado con un anillo negro
-	//    (un solo lote de triangulos en vez de cientos de lineas por frame)
 	constexpr int32 Segmentos = 64;
-	const float RadioExterior = Radio * 1.45f; // > Radio * sqrt(2), cubre las esquinas
+	const float RadioExterior = Radio * 1.45f;
 	const float Paso = 2.0f * PI / Segmentos;
 
 	TArray<FCanvasUVTri> Triangulos;
@@ -54,14 +51,12 @@ void AMiHUD::DrawHUD()
 		Triangulos.Add(T2);
 	}
 
-	// Textura blanca por defecto del Canvas (la misma que usa DrawRect)
 	if (Canvas->DefaultTexture && Canvas->DefaultTexture->GetResource())
 	{
 		FCanvasTriangleItem Anillo(Triangulos, Canvas->DefaultTexture->GetResource());
 		Canvas->DrawItem(Anillo);
 	}
 
-	// 3. Borde del visor
 	for (int32 i = 0; i < Segmentos; ++i)
 	{
 		const FVector2D P1 = Centro + FVector2D(FMath::Cos(i * Paso), FMath::Sin(i * Paso)) * Radio;
@@ -69,7 +64,6 @@ void AMiHUD::DrawHUD()
 		DrawLine(P1.X, P1.Y, P2.X, P2.Y, FLinearColor::Black, 4.0f);
 	}
 
-	// 4. Cruz roja central
 	DrawLine(Centro.X - 20.0f, Centro.Y, Centro.X + 20.0f, Centro.Y, FLinearColor::Red, 2.0f);
 	DrawLine(Centro.X, Centro.Y - 20.0f, Centro.X, Centro.Y + 20.0f, FLinearColor::Red, 2.0f);
 }

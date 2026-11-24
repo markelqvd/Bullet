@@ -14,13 +14,12 @@ public class Bullet : ModuleRules
 			"CoreUObject",
 			"Engine",
 			"InputCore",
-			"EnhancedInput",     // Acciones de input (IA_Apuntar, IA_Disparar)
-			"AIModule",          // AAIController para EnemigoPatrulla
-			"NavigationSystem",  // MoveToActor / PathFollowing
-			"GameplayTasks"      // Requerido por AIModule
+			"EnhancedInput",
+			"AIModule",
+			"NavigationSystem",
+			"GameplayTasks"
 		});
 
-		// Menu principal hecho con Slate
 		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 	}
 }

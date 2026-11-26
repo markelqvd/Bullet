@@ -6,6 +6,8 @@
 
 class USphereComponent;
 class UStaticMeshComponent;
+class USpringArmComponent;
+class UCameraComponent;
 class UProjectileMovementComponent;
 
 UCLASS()
@@ -16,22 +18,31 @@ class BULLET_API AProyectil : public AActor
 public:
 	AProyectil();
 
-	UPROPERTY(VisibleAnywhere, Category = "Proyectil")
-	TObjectPtr<USphereComponent> ColisionProyectil;
-
-	UPROPERTY(VisibleAnywhere, Category = "Proyectil")
-	TObjectPtr<UStaticMeshComponent> MeshProyectil;
-
-	UPROPERTY(VisibleAnywhere, Category = "Proyectil")
-	TObjectPtr<UProjectileMovementComponent> MovimientoProyectil;
-
-	UPROPERTY(EditAnywhere, Category = "Proyectil")
-	float Dano = 25.0f;
-
 protected:
 	virtual void BeginPlay() override;
 
+public:
+	UPROPERTY(VisibleAnywhere, Category = "Componentes")
+	USphereComponent* Colision;
+
+	UPROPERTY(VisibleAnywhere, Category = "Componentes")
+	UStaticMeshComponent* CuerpoBala;
+
+	UPROPERTY(VisibleAnywhere, Category = "Componentes")
+	UStaticMeshComponent* PuntaBala;
+
+	UPROPERTY(VisibleAnywhere, Category = "Camara")
+	USpringArmComponent* BrazoCamara;
+
+	UPROPERTY(VisibleAnywhere, Category = "Camara")
+	UCameraComponent* CamaraBala;
+
+	UPROPERTY(VisibleAnywhere, Category = "Movimiento")
+	UProjectileMovementComponent* MovimientoProyectil;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ajustes")
+	float VelocidadBala = 700.0f;
+
 	UFUNCTION()
-	void AlImpactar(UPrimitiveComponent* ComponenteGolpeado, AActor* OtroActor,
-		UPrimitiveComponent* OtroComponente, FVector ImpulsoNormal, const FHitResult& Impacto);
+	void AlImpactar(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 };
